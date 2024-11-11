@@ -5,8 +5,6 @@
 // how do we control what our dependencies do ?
 //  --  Using MockTail's API
 
-import 'dart:ffi';
-
 import 'package:dartz/dartz.dart';
 import 'package:deep_lab/features/auth/domain/repos/auth_repo.dart';
 import 'package:deep_lab/features/auth/domain/usecases/create_user_usecase.dart';
