@@ -10,7 +10,7 @@ abstract class AuthRepo {
     required String createdAt,
   });
 
-  Future<Either<Failure,UserEntity>> getUserById({required String id});
+  // Future<Either<Failure,UserEntity>> getUserById({required String id});
 
   Future<Either<Failure,List<UserEntity>>> getAllUsers();
 
