@@ -1,114 +1,71 @@
-import 'package:dartz/dartz.dart';
-import 'package:deep_lab/core/error/exceptions.dart';
+import 'dart:convert';
+
 import 'package:deep_lab/core/error/failure.dart';
+import 'package:deep_lab/core/utils/constants.dart';
 import 'package:deep_lab/features/auth/data/dataSources/auth_remote_data_source.dart';
-import 'package:deep_lab/features/auth/data/model/user_model.dart';
-import 'package:deep_lab/features/auth/data/repo/auth_repo_impl.dart';
-import 'package:deep_lab/features/auth/domain/entities/user_entity.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 
-class MockAuthRemoteDataSource extends Mock implements AuthRemoteDataSource {}
+class MockClient extends Mock implements http.Client {}
 
 void main() {
+  late http.Client client;
   late AuthRemoteDataSource dataSource;
-  late AuthRepoImpl repoImpl;
 
   setUp(() {
-    dataSource = MockAuthRemoteDataSource();
-    repoImpl = AuthRepoImpl(remoteDataSource: dataSource);
+    client = MockClient();
+    dataSource = AuthRemoteDataSourceImpl(client: client);
+    registerFallbackValue(Uri());
   });
 
-  group('create user', () {
-    const createdAt = 'a.createdAt';
-    const name = 'a.name';
-    const avatar = 'avatar';
-    test('should call [RemoteDataSource] and complete successfully', () async {
+  group('createUser', () {
+    test('should complete successfully', () async {
       // Arrange
-      when(
-        () => dataSource.createUser(
-            avatar: any(named: 'avatar'),
-            name: any(named: 'name'),
-            createdAt: any(named: 'createdAt')),
-      ).thenAnswer(
-        (_) async => Future.value(),
-      );
+      when(() => client.post(any(), body: any(named: 'body'))).thenAnswer(
+          (_) async => http.Response('User created successfully', 201));
 
       // Act
-      final result = await repoImpl.createUser(
-          avatar: avatar, name: name, createdAt: createdAt);
-
-      // Assert
-      expect(result, equals(const Right(null)));
-      verify(
-        () => dataSource.createUser(
-            avatar: avatar, name: name, createdAt: createdAt),
-      ).called(1);
-      verifyNoMoreInteractions(dataSource);
-    });
-
-    test(
-        'should return a [ServerFailure] when a call to data source is unsuccessfull',
-        () async {
-      // Arrange
-      when(
-        () => dataSource.createUser(
-            avatar: any(named: 'avatar'),
-            name: any(named: 'name'),
-            createdAt: any(named: 'createdAt')),
-      ).thenThrow(const ServerException(
-          message: 'Unknown error has occured', statusCode: 500));
-
-      // Act
-      final result = await repoImpl.createUser(
-          avatar: avatar, name: name, createdAt: createdAt);
+      final methodCall = dataSource.createUser;
 
       // Assert
       expect(
-          result,
-          equals(const Left(ApiFailure(
-              message: 'Unknown error has occured', statusCode: 500))));
-      verify(() => dataSource.createUser(
-          avatar: avatar, name: name, createdAt: createdAt)).called(1);
-      verifyNoMoreInteractions(dataSource);
-    });
-  });
+          () => methodCall(
+              avatar: 'avatar', name: 'name', createdAt: 'createdAt'),
+          completes);
 
-  group('getAllUsers', () {
-    // final tUser = UserModel.empty();
-
-    test(
-        'should class a [RemoteDataSource.getAllUsers] and return the right data',
-        () async {
-      // Arrange
-      when(() => dataSource.getAllUsers()).thenAnswer((_) async => ([]));
-
-      // Act
-      final result = await repoImpl.getAllUsers();
-
-      // Assert
-      expect(result, isA<Right<dynamic, List<UserEntity>>>());
-      verify(() => dataSource.getAllUsers()).called(1);
-      verifyNoMoreInteractions(dataSource);
+      verify(() => client.post(Uri.parse('$kBaseUrl$kCreateUserEndpoint'),
+          body: jsonEncode({
+            'avatar': 'avatar',
+            'name': 'name',
+            'createdAt': 'createdAt',
+          }))).called(1);
+      verifyNoMoreInteractions(client);
     });
 
-    test(
-        'should return a [ServerFailure] when a call to data source is unsuccessfull',
+    test('should throw [ApiException] when the response code is not 201 or 200',
         () async {
       // Arrange
-      when(() => dataSource.getAllUsers()).thenThrow(const ServerException(
-          message: 'Unknown error has occured', statusCode: 500));
+      when(() => client.post(any(), body: any(named: 'body')))
+          .thenAnswer((_) async => http.Response('User not created', 400));
 
       // Act
-      final result = await repoImpl.getAllUsers();
+      final methodCall = dataSource.createUser;
 
       // Assert
       expect(
-          result,
-          equals(const Left(ApiFailure(
-              message: 'Unknown error has occured', statusCode: 500))));
-      verify(() => dataSource.getAllUsers()).called(1);
-      verifyNoMoreInteractions(dataSource);
+          () async => methodCall(
+              avatar: 'avatar', name: 'name', createdAt: 'createdAt'),
+          throwsA(
+              const ApiFailure(message: 'user not created', statusCode: 400)));
+
+      verify(() => client.post(Uri.parse('$kBaseUrl$kCreateUserEndpoint'),
+          body: jsonEncode({
+            'avatar': 'avatar',
+            'name': 'name',
+            'createdAt': 'createdAt',
+          }))).called(1);
+      verifyNoMoreInteractions(client);
     });
   });
 }
