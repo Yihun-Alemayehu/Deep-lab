@@ -21,6 +21,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String name,
     required String avatar,
   }) async {
+    emit(const CreatingUserState());
     final result = await _createUserUsecase(
         CreateUserParam(name: name, avatar: avatar, createdAt: createdAt));
 
