@@ -25,16 +25,14 @@ void main() {
     test('should complete successfully', () async {
       // Arrange
       when(() => client.post(any(), body: any(named: 'body'))).thenAnswer(
-          (_) async => http.Response('User created successfully', 201));
+          (_) async => http.Response('User created successfully', 202));
 
       // Act
-      final methodCall = dataSource.createUser;
+      final methodCall = await dataSource.createUser(
+          avatar: 'avatar', name: 'name', createdAt: 'createdAt');
 
       // Assert
-      expect(
-          () => methodCall(
-              avatar: 'avatar', name: 'name', createdAt: 'createdAt'),
-          completes);
+      expect(() => methodCall, completes);
 
       verify(() => client.post(Uri.parse('$kBaseUrl$kCreateUserEndpoint'),
           body: jsonEncode({
@@ -102,7 +100,10 @@ void main() {
       final methodCall = dataSource.getAllUsers;
 
       // Assert
-      expect(() async=> methodCall(), throwsA(const ServerException(message: 'Server Down',statusCode : 500)));
+      expect(
+          () async => methodCall(),
+          throwsA(
+              const ServerException(message: 'Server Down', statusCode: 500)));
       verify(() => client.get(Uri.https(kBase, kGetAllUsers))).called(1);
       verifyNoMoreInteractions(client);
     });
